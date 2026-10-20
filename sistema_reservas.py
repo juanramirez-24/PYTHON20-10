@@ -45,12 +45,8 @@ def pausar():
 
 
 def crear_cuenta():
-    """Solo se permite crear una cuenta en esta versión del sistema."""
+    """Permite registrar varias cuentas, cada una con documento único."""
     global siguiente_usuario_id
-
-    if usuarios:
-        print("\nYa existe una cuenta. Inicia sesión para continuar.")
-        return
 
     print("\n=== CREAR CUENTA ===")
     nombre = leer_texto("Nombre completo: ")
@@ -67,7 +63,6 @@ def crear_cuenta():
     })
     siguiente_usuario_id += 1
     print("\n¡Cuenta creada correctamente!")
-    print("Ahora solo estará disponible la opción «Iniciar sesión».")
 
 
 def iniciar_sesion():
@@ -244,11 +239,20 @@ def menu_usuario():
         print("\n" + "=" * 46)
         print(f"  BIENVENIDO/A, {usuario_sesion['nombre'].upper()}")
         print("=" * 46)
+        # Consultar y cancelar solo aparecen cuando el usuario tiene reservas.
+        mis_reservas = [
+            reserva for reserva in reservas
+            if reserva["usuario_id"] == usuario_sesion["id"]
+        ]
+
         print("1. Ver mesas y ubicaciones")
         print("2. Crear reserva")
-        print("3. Consultar mis reservas")
-        print("4. Cancelar reserva")
-        print("5. Cerrar sesión")
+        if mis_reservas:
+            print("3. Consultar mis reservas")
+            print("4. Cancelar reserva")
+            print("5. Cerrar sesión")
+        else:
+            print("3. Cerrar sesión")
 
         opcion = input("\nSelecciona una opción: ").strip()
         if opcion == "1":
@@ -257,63 +261,44 @@ def menu_usuario():
         elif opcion == "2":
             crear_reserva()
             pausar()
-        elif opcion == "3":
+        elif opcion == "3" and mis_reservas:
             consultar_reservas()
             pausar()
-        elif opcion == "4":
+        elif opcion == "4" and mis_reservas:
             cancelar_reserva()
             pausar()
-        elif opcion == "5":
+        elif (opcion == "5" and mis_reservas) or (opcion == "3" and not mis_reservas):
             print(f"Hasta luego, {usuario_sesion['nombre']}.")
             return
         else:
             print("Opción inválida. Intenta nuevamente.")
+            pausar()
 
 
 def menu_principal():
     while True:
-        print("\n" + "=" * 46)
+        print("\\n" + "=" * 46)
         print("     SISTEMA DE RESERVAS DEL RESTAURANTE")
         print("=" * 46)
+        print("1. Crear cuenta")
+        print("2. Iniciar sesión")
+        print("0. Salir")
 
-        if not usuarios:
-            print("1. Crear cuenta")
-            print("2. Iniciar sesión")
-            print("0. Salir")
-            opcion = input("\nSelecciona una opción: ").strip()
-
-            if opcion == "1":
-                crear_cuenta()
-                pausar()
-            elif opcion == "2":
-                iniciar_sesion()
-                if usuario_sesion is not None:
-                    menu_usuario()
-                else:
-                    pausar()
-            elif opcion == "0":
-                print("¡Gracias por utilizar el sistema!")
-                break
+        opcion = input("\\nSelecciona una opción: ").strip()
+        if opcion == "1":
+            crear_cuenta()
+            pausar()
+        elif opcion == "2":
+            if iniciar_sesion():
+                menu_usuario()
             else:
-                print("Opción inválida. Intenta nuevamente.")
                 pausar()
+        elif opcion == "0":
+            print("¡Gracias por utilizar el sistema!")
+            break
         else:
-            # Después de crear la cuenta, se oculta «Crear cuenta».
-            print("1. Iniciar sesión")
-            print("0. Salir")
-            opcion = input("\nSelecciona una opción: ").strip()
-
-            if opcion == "1":
-                if iniciar_sesion():
-                    menu_usuario()
-                else:
-                    pausar()
-            elif opcion == "0":
-                print("¡Gracias por utilizar el sistema!")
-                break
-            else:
-                print("Opción inválida. Intenta nuevamente.")
-                pausar()
+            print("Opción inválida. Intenta nuevamente.")
+            pausar()
 
 
 if __name__ == "__main__":

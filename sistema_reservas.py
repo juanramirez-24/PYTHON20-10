@@ -29,6 +29,25 @@ def separador():
     print("-" * 54)
 
 
+class CancelarOperacion(Exception):
+    """Se usa cuando el usuario decide cancelar un formulario."""
+
+
+def input_cancelable(mensaje):
+    valor = input(f"{mensaje} [Escribe CANCELAR para volver]: ")
+    if valor.strip().upper() in {"CANCELAR", "VOLVER", "MENU"}:
+        raise CancelarOperacion
+    return valor
+
+
+def ejecutar_con_cancelacion(funcion):
+    try:
+        return funcion()
+    except CancelarOperacion:
+        print("\\nOperación cancelada. Regresando al menú anterior.")
+        return False
+
+
 def leer_texto(mensaje):
     while True:
         valor = input(mensaje).strip()
@@ -40,7 +59,7 @@ def leer_texto(mensaje):
 def leer_entero(mensaje, minimo=1):
     while True:
         try:
-            valor = int(input(mensaje))
+            valor = int(input_cancelable(mensaje))
             if valor >= minimo:
                 return valor
             print(f"Aviso: ingresa un número igual o superior a {minimo}.")
@@ -134,10 +153,10 @@ def mostrar_mesas():
 def solicitar_fecha_hora():
     while True:
         print("\n--- FECHA DE LA RESERVA ---")
-        fecha = input("Ingresa la fecha (AAAA-MM-DD): ").strip()
+        fecha = input_cancelable("Ingresa la fecha (AAAA-MM-DD): ").strip()
 
         print("\n--- HORA DE LA RESERVA ---")
-        hora = input("Ingresa la hora (HH:MM, formato 24 horas): ").strip()
+        hora = input_cancelable("Ingresa la hora (HH:MM, formato 24 horas): ").strip()
 
         try:
             fecha_hora = datetime.strptime(f"{fecha} {hora}", "%Y-%m-%d %H:%M")
@@ -216,17 +235,20 @@ def crear_reserva():
     print(f"Mesa: {mesa['numero']} ({mesa['ubicacion']})")
     separador()
 
-    continuar = input("¿Deseas continuar al pago simulado? (s/n): ").strip().lower()
+    continuar = input_cancelable("¿Deseas continuar al pago simulado? (s/n): ").strip().lower()
     if continuar != "s":
         print("La reserva no fue creada.")
         return
 
     print("\n--- PAGO SIMULADO ---")
     print("Este sistema no realiza cobros reales.")
-    resultado = input("Escribe 'pagar' para simular un pago exitoso: ").strip().lower()
-    if resultado != "pagar":
-        print("No se completó el pago. No se guardó la reserva.")
-        return
+    while True:
+        resultado = input_cancelable(
+            "Escribe 'pagar' para confirmar el pago o 'cancelar' para volver: "
+        ).strip().lower()
+        if resultado == "pagar":
+            break
+        print("Respuesta incorrecta. Escribe exactamente 'pagar' para continuar.")
 
     reservas.append({
         "id": siguiente_reserva_id,
@@ -345,6 +367,21 @@ def cancelar_mis_reservas():
 
 # -------------------- GESTIÓN ADMINISTRATIVA DE MESAS --------------------
 
+
+def admin_mostrar_mesas():
+    print("\\n=== MESAS Y UBICACIONES (ADMINISTRACIÓN) ===")
+    separador()
+    print("ID INTERNO | NÚMERO DE MESA | CAPACIDAD | UBICACIÓN")
+    separador()
+    for mesa in mesas:
+        print(
+            f"ID: {mesa['id']} | Mesa {mesa['numero']} | "
+            f"Capacidad: {mesa['capacidad']} comensales | "
+            f"Ubicación: {mesa['ubicacion']}"
+        )
+    separador()
+
+
 def admin_crear_mesa():
     global siguiente_mesa_id
 
@@ -369,7 +406,7 @@ def admin_crear_mesa():
 
 def admin_editar_mesa():
     print("\n=== EDITAR MESA ===")
-    mostrar_mesas()
+    admin_mostrar_mesas()
     mesa_id = leer_entero("ID interno de la mesa que deseas editar: ")
     mesa = buscar_mesa_por_id(mesa_id)
 
@@ -378,9 +415,9 @@ def admin_editar_mesa():
         return
 
     print("Presiona ENTER para conservar el dato actual.")
-    nuevo_numero = input(f"Número de mesa [{mesa['numero']}]: ").strip()
-    nueva_capacidad = input(f"Capacidad [{mesa['capacidad']}]: ").strip()
-    nueva_ubicacion = input(f"Ubicación [{mesa['ubicacion']}]: ").strip()
+    nuevo_numero = input_cancelable(f"Número de mesa [{mesa['numero']}]: ").strip()
+    nueva_capacidad = input_cancelable(f"Capacidad [{mesa['capacidad']}]: ").strip()
+    nueva_ubicacion = input_cancelable(f"Ubicación [{mesa['ubicacion']}]: ").strip()
 
     if nuevo_numero:
         try:
@@ -412,7 +449,7 @@ def admin_editar_mesa():
 
 def admin_eliminar_mesa():
     print("\n=== ELIMINAR MESA ===")
-    mostrar_mesas()
+    admin_mostrar_mesas()
     mesa_id = leer_entero("ID interno de la mesa que deseas eliminar: ")
     mesa = buscar_mesa_por_id(mesa_id)
 
@@ -431,7 +468,7 @@ def admin_eliminar_mesa():
         )
         return
 
-    confirmar = input(
+    confirmar = input_cancelable(
         f"¿Seguro que deseas eliminar la mesa {mesa['numero']}? (s/n): "
     ).strip().lower()
     if confirmar != "s":
@@ -469,10 +506,10 @@ def admin_editar_perfil():
         return
 
     print("Presiona ENTER para conservar cada dato actual.")
-    nombre = input(f"Nombre [{usuario['nombre']}]: ").strip()
-    documento = input(f"Documento [{usuario['documento']}]: ").strip()
-    telefono = input(f"Teléfono [{usuario['telefono']}]: ").strip()
-    contrasena = input("Nueva contraseña (vacío para conservarla): ").strip()
+    nombre = input_cancelable(f"Nombre [{usuario['nombre']}]: ").strip()
+    documento = input_cancelable(f"Documento [{usuario['documento']}]: ").strip()
+    telefono = input_cancelable(f"Teléfono [{usuario['telefono']}]: ").strip()
+    contrasena = input_cancelable("Nueva contraseña (vacío para conservarla): ").strip()
 
     if documento and documento != usuario["documento"]:
         otro = buscar_usuario_por_documento(documento)
@@ -538,31 +575,31 @@ def menu_admin():
 
         opcion = input("\nSelecciona una opción: ").strip()
         if opcion == "1":
-            admin_ver_usuarios()
+            ejecutar_con_cancelacion(admin_ver_usuarios)
             pausar()
         elif opcion == "2":
-            admin_editar_perfil()
+            ejecutar_con_cancelacion(admin_editar_perfil)
             pausar()
         elif opcion == "3":
-            admin_consultar_reservas()
+            ejecutar_con_cancelacion(admin_consultar_reservas)
             pausar()
         elif opcion == "4":
-            admin_editar_reserva()
+            ejecutar_con_cancelacion(admin_editar_reserva)
             pausar()
         elif opcion == "5":
-            admin_cancelar_reserva()
+            ejecutar_con_cancelacion(admin_cancelar_reserva)
             pausar()
         elif opcion == "6":
-            mostrar_mesas()
+            ejecutar_con_cancelacion(mostrar_mesas)
             pausar()
         elif opcion == "7":
-            admin_crear_mesa()
+            ejecutar_con_cancelacion(admin_crear_mesa)
             pausar()
         elif opcion == "8":
-            admin_editar_mesa()
+            ejecutar_con_cancelacion(admin_editar_mesa)
             pausar()
         elif opcion == "9":
-            admin_eliminar_mesa()
+            ejecutar_con_cancelacion(admin_eliminar_mesa)
             pausar()
         elif opcion == "10":
             print("Sesión de administrador cerrada.")
@@ -597,19 +634,19 @@ def menu_usuario():
 
         opcion = input("\nSelecciona una opción: ").strip()
         if opcion == "1":
-            mostrar_mesas()
+            ejecutar_con_cancelacion(mostrar_mesas)
             pausar()
         elif opcion == "2":
-            crear_reserva()
+            ejecutar_con_cancelacion(crear_reserva)
             pausar()
         elif opcion == "3" and mis_reservas:
-            consultar_mis_reservas()
+            ejecutar_con_cancelacion(consultar_mis_reservas)
             pausar()
         elif opcion == "4" and mis_reservas:
-            editar_mis_reservas()
+            ejecutar_con_cancelacion(editar_mis_reservas)
             pausar()
         elif opcion == "5" and mis_reservas:
-            cancelar_mis_reservas()
+            ejecutar_con_cancelacion(cancelar_mis_reservas)
             pausar()
         elif (opcion == "6" and mis_reservas) or (opcion == "3" and not mis_reservas):
             print(f"Hasta luego, {usuario_sesion['nombre']}.")
@@ -631,10 +668,10 @@ def menu_principal():
 
         opcion = input("\nSelecciona una opción: ").strip()
         if opcion == "1":
-            crear_cuenta()
+            ejecutar_con_cancelacion(crear_cuenta)
             pausar()
         elif opcion == "2":
-            if iniciar_sesion():
+            if ejecutar_con_cancelacion(iniciar_sesion):
                 if usuario_sesion.get("rol") == "admin":
                     menu_admin()
                 else:

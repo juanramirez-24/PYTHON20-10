@@ -56,6 +56,14 @@ def leer_texto(mensaje):
         print("Aviso: este campo no puede quedar vacío.")
 
 
+def leer_solo_numeros(mensaje):
+    while True:
+        valor = input_cancelable(mensaje).strip()
+        if valor.isascii() and valor.isdecimal():
+            return valor
+        print("Aviso: este campo solo permite números. No ingreses letras ni caracteres especiales.")
+
+
 def leer_entero(mensaje, minimo=1):
     while True:
         try:
@@ -88,13 +96,13 @@ def crear_cuenta():
 
     print("\n=== CREAR CUENTA ===")
     nombre = leer_texto("Nombre completo: ")
-    documento = leer_texto("Documento: ")
+    documento = leer_solo_numeros("Documento: ")
 
     if documento.upper() == ADMIN_DOCUMENTO or buscar_usuario_por_documento(documento):
         print("Aviso: ese documento ya está registrado o está reservado para administración.")
         return
 
-    telefono = leer_texto("Número de teléfono: ")
+    telefono = leer_solo_numeros("Número de teléfono: ")
     contrasena = leer_texto("Crea una contraseña: ")
 
     usuarios.append({
@@ -507,15 +515,31 @@ def admin_editar_perfil():
 
     print("Presiona ENTER para conservar cada dato actual.")
     nombre = input_cancelable(f"Nombre [{usuario['nombre']}]: ").strip()
-    documento = input_cancelable(f"Documento [{usuario['documento']}]: ").strip()
-    telefono = input_cancelable(f"Teléfono [{usuario['telefono']}]: ").strip()
-    contrasena = input_cancelable("Nueva contraseña (vacío para conservarla): ").strip()
 
-    if documento and documento != usuario["documento"]:
+    while True:
+        documento = input_cancelable(
+            f"Documento [{usuario['documento']}]: "
+        ).strip()
+        if not documento:
+            break
+        if not (documento.isascii() and documento.isdecimal()):
+            print("Aviso: el documento solo puede contener números.")
+            continue
         otro = buscar_usuario_por_documento(documento)
-        if otro:
-            print("Ese documento ya está asignado a otro perfil. No se modificó el documento.")
-            documento = usuario["documento"]
+        if otro and otro["id"] != usuario["id"]:
+            print("Ese documento ya está asignado a otro perfil.")
+            continue
+        break
+
+    while True:
+        telefono = input_cancelable(
+            f"Teléfono [{usuario['telefono']}]: "
+        ).strip()
+        if not telefono or (telefono.isascii() and telefono.isdecimal()):
+            break
+        print("Aviso: el teléfono solo puede contener números.")
+
+    contrasena = input_cancelable("Nueva contraseña (vacío para conservarla): ").strip()
 
     if nombre:
         usuario["nombre"] = nombre
